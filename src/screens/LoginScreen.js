@@ -15,10 +15,18 @@ export default class LoginScreen extends React.Component {
   handleLogin = ()=>{
     const {email,password} = this.state;
 
-    firebase
+    if(!email){
+      this.setState({errorMessage: "Debe rellenar el campo de correo"});
+    }else if (!password){
+      this.setState({errorMessage: "Debe rellenar el campo de contraseña"});
+    } else{
+      firebase
       .auth()
       .signInWithEmailAndPassword(email,password)
-      .catch(error => this.setState({errorMessage: error.message}));
+      .catch(error =>  error.code === "auth/invalid-email" ? this.setState({errorMessage: "Debe ingresar un correo valido"})
+                      : error.code === "auth/invalid-login-credentials" ? this.setState({errorMessage: "Email o contraseña incorrectos"})
+                      : this.setState({errorMessage: "Hubo un error al iniciar sesión"}));
+    }
   }
 
   render(){

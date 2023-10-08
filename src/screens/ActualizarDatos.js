@@ -8,58 +8,105 @@ import {
 import { TextInput } from "react-native-gesture-handler";
 import React from "react";
 import GlobalStyles from "../GlobalStyles";
-import firebase from "firebase/compat/app";
+import firebase from "firebase/compat";
 import Header from "../components/Header";
 import TabMenu from "../components/TabMenu";
 
 export default class ActualizarDatos extends React.Component {
   state = {
-    username: "",
+    displayName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    profilePhoto: "",
-    errorMessage: null,
-    loading: false,
+    errorMessage: null
   };
+
+  componentDidMount(){
+    const {email, displayName} = firebase.auth().currentUser;
+
+    this.setState({email,displayName});
+  }
+
+  actualizarUsuario = () => {
+    const {displayName,password,confirmPassword} = this.state;
+
+    firebase
+        .auth()
+        .signInWithEmailAndPassword(firebase.auth().currentUser.email,confirmPassword.trim())
+        .then(async(result)=> {
+
+          if(displayName.trim() !== result.user.displayName){
+            await result.user.updateProfile({displayName: displayName})
+          }
+
+          if(password){
+            if(password.length < 8 || !password.match(/[a-z]/) || !password.match(/[A-Z]/) || !password.match(/\d/)){
+              this.setState({errorMessage: "La contraseña debe contener por lo menos 8 caracteres, combinando mayusculas, minusculas y numeros"});
+            }else{
+              await result.user.updatePassword(password);
+            }
+          }
+
+          this.props.navigation.navigate("Home");
+        })
+        .catch(error => error.code === "auth/missing-password" ? this.setState({errorMessage: "Debe ingresar la contraseña original"})
+                        : error.code === "auth/invalid-login-credentials" ? this.setState({errorMessage: "Contraseña original incorrecta"})
+                        : this.setState({errorMessage: error.message/*"Hubo un error al actualizar datos"*/}));
+
+    // if(displayName.trim() !== firebase.auth().currentUser.displayName){
+    //   await firebase.auth().currentUser.updateProfile({displayName: displayName})
+    //   .then(result => console.log("Uname actualizado"))
+    //   .catch(error => this.setState({errorMessage: "Hubo un error al actualizar el nombre de usuario"}));
+    // }
+
+    // if(password){
+    //   if(password.length < 8 || !password.match(/[a-z]/) || !password.match(/[A-Z]/) || !password.match(/\d/)){
+    //     this.setState({errorMessage: "La contraseña debe contener por lo menos 8 caracteres, combinando mayusculas, minusculas y numeros"});
+    //   }else{
+    //     firebase
+    //     .auth()
+    //     .signInWithEmailAndPassword(firebase.auth().currentUser.email,confirmPassword.trim())
+    //     .then(async(result)=> {
+    //       await result.user.updatePassword(password);
+    //       this.props.navigation.navigate("Home");
+    //     })
+    //     .catch(error => error.code === "auth/missing-password" ? this.setState({errorMessage: "Debe ingresar una contraseña"})
+    //                     : error.code === "auth/invalid-login-credentials" ? this.setState({errorMessage: "Contraseña incorrecta"})
+    //                     : this.setState({errorMessage: "Hubo un error al actualizar la contraseña"}));
+    //   }
+    // }
+  }
+
   render() {
     return (
       <View style={GlobalStyles.contenedorPantalla}>
         <Header />
-
         <ScrollView style={GlobalStyles.contenidoPantalla}>
           <Text style={GlobalStyles.subtitulo}>Actualizar Datos</Text>
+          
+          <View>
+          {this.state.errorMessage && <Text style={GlobalStyles.error}>{this.state.errorMessage}</Text>}
+          </View>
 
           <View>
             <Text>Nombre de Usuario</Text>
             <TextInput
               placeholder="Ingresa tu apodo unico..."
               style={GlobalStyles.input}
-              onChangeText={(username) => this.setState({ username })}
-              value={this.props.username}
+              onChangeText={(displayName) => this.setState({ displayName })}
+              value={this.state.displayName}
               autoCapitalize="none"
             ></TextInput>
           </View>
+          
           <View>
-            <Text>Email</Text>
+            <Text>Contraseña Nueva</Text>
             <TextInput
-              placeholder="Ingresa tu email..."
-              style={GlobalStyles.input}
-              onChangeText={(email) => this.setState({ email })}
-              value={this.props.email}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            ></TextInput>
-          </View>
-
-          <View>
-            <Text>Contraseña</Text>
-            <TextInput
-              placeholder="Ingresa tu contraseña..."
+              placeholder="Si quieres cambiar tu contraseña, ingresa una nueva..."
               style={GlobalStyles.input}
               secureTextEntry
               onChangeText={(password) => this.setState({ password })}
-              value={this.props.password}
+              value={this.state.password}
               autoCapitalize="none"
             ></TextInput>
           </View>
@@ -73,12 +120,12 @@ export default class ActualizarDatos extends React.Component {
               onChangeText={(confirmPassword) =>
                 this.setState({ confirmPassword })
               }
-              value={this.props.confirmPassword}
+              value={this.state.confirmPassword}
               autoCapitalize="none"
             ></TextInput>
           </View>
 
-          <TouchableOpacity /*onPress={this.handleSingUp}*/>
+          <TouchableOpacity onPress={this.actualizarUsuario}>
             {this.state.loading ? (
               <ActivityIndicator
                 style={GlobalStyles.botonAzul}
@@ -86,7 +133,7 @@ export default class ActualizarDatos extends React.Component {
                 size="small"
               ></ActivityIndicator>
             ) : (
-              <Text style={GlobalStyles.botonAzul}>Crear Cuenta</Text>
+              <Text style={GlobalStyles.botonAzul}>Actualizar</Text>
             )}
           </TouchableOpacity>
 

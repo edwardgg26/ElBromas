@@ -10,12 +10,13 @@ import {
 } from "react-native";
 import React, { Component } from "react";
 import GlobalStyles from "../GlobalStyles";
-import * as ImagePicker from "expo-image-picker";
 import TabMenu from "../components/TabMenu";
 import firebase from "firebase/compat";
+import {collection,  query, where} from "firebase/firestore";
 import Header from "../components/Header";
 import Meme from "../components/Meme";
 import { Ionicons } from '@expo/vector-icons'; 
+import {db} from "../config/firebase";
 
 export default class ProfileScreen extends React.Component {
   state = {
@@ -23,45 +24,8 @@ export default class ProfileScreen extends React.Component {
     displayName: "",
   };
 
-  // const getPermission = async () =>{
-  //   if(Platform.OS !== "web"){
-  //     const {status} = await Permissions.askAsync(Permissions.CAMERA_ROLL);
-
-  //     return status;
-  //   }
-  // }
-
-  // const pickImage = async () => {
-  //   try {
-  //     let result = ImagePicker.launchImageLibraryAsync({
-  //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-  //       allowsEditing: true,
-  //       aspect: [1,1],
-  //       quality: 0.5
-  //     });
-
-  //     if(!result.cancelled){
-  //       setProfilePhoto(result.uri);
-  //     }
-  //   } catch (error) {
-  //     console.log("Error @pickImage: ",error);
-  //   }
-  // }
-
-  // const addProfilePhoto = async () => {
-  //   // const {status} = getPermission();
-
-  //   // if(status !== "granted"){
-  //   //   alert("Status: ",status);
-
-  //   //   return;
-  //   // }
-
-  //   pickImage();
-  // }
-
   componentDidMount(){
-    const {email,displayName} = firebase.auth().currentUser;
+    const {email, displayName} = firebase.auth().currentUser;
 
     this.setState({email,displayName});
   }
@@ -87,8 +51,7 @@ export default class ProfileScreen extends React.Component {
             <Ionicons name="pencil" size={24} color="#0F40F5" />
           </TouchableOpacity>
 
-          
-          <Text style={[GlobalStyles.subtitulo, GlobalStyles.alinearCentro]}>{this.state.email}</Text>
+          <Text style={[GlobalStyles.subtitulo, GlobalStyles.alinearCentro]}>{this.state.displayName}</Text>
 
           <View>
             <Text style={[GlobalStyles.subtitulo, GlobalStyles.alinearCentro]}>Información del Usuario</Text>

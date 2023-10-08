@@ -20,17 +20,19 @@ export default class RegisterScreen extends React.Component {
 
     if(!username){
       this.setState({errorMessage: "Debe ingresar un nombre de usuario"});
-    }else if(!email || !email.includes("@")){
-      this.setState({errorMessage: "Debe ingresar un correo valido"});
-    }else if(password.length < 8 && !password.match(/[a-z]/) && !password.match(/[A-Z]/) && !password.match(/\d/)){
+    } else if (!email){
+      this.setState({errorMessage: "Debe ingresar un email"});
+    }else if(password.length < 8 || !password.match(/[a-z]/) || !password.match(/[A-Z]/) || !password.match(/\d/)){
       this.setState({errorMessage: "La contraseña debe contener por lo menos 8 caracteres, combinando mayusculas, minusculas y numeros"});
-    } else if(password !== confirmPassword){
+    }else if(password !== confirmPassword){
       this.setState({errorMessage: "Las contraseñas no coinciden"});
     }else{
-
-      firebase.auth().createUserWithEmailAndPassword(email,password).then(userCredentials => {
-        return userCredentials.user.updateProfile({displayName: username})
-      }).catch(error => this.setState({errorMessage: error.message}));
+      firebase.auth().createUserWithEmailAndPassword(email,password)
+      .then(async(result) => {
+        await result.user.updateProfile({displayName: username,photoURL:""});
+      })
+      .catch(error => error.code === "auth/invalid-email" ? this.setState({errorMessage: "Debe ingresar un correo valido"})
+                      :this.setState({errorMessage: "Hubo un error al crear el usuario"}));
     }
   }
 
@@ -41,7 +43,7 @@ export default class RegisterScreen extends React.Component {
         <View>
           {this.state.errorMessage && <Text style={GlobalStyles.error}>{this.state.errorMessage}</Text>}
         </View>
-  
+
         <View style={GlobalStyles.form}>
           <View>
             <Text>Nombre de Usuario</Text>
@@ -62,7 +64,7 @@ export default class RegisterScreen extends React.Component {
               keyboardType="email-address"
               autoCapitalize="none"></TextInput>
           </View>
-  
+
           <View>
             <Text>Contraseña</Text>
             <TextInput
@@ -73,7 +75,7 @@ export default class RegisterScreen extends React.Component {
               value={this.props.password}
               autoCapitalize="none"></TextInput>
           </View>
-  
+
           <View>
             <Text>Confirmar Contraseña</Text>
             <TextInput
@@ -85,11 +87,11 @@ export default class RegisterScreen extends React.Component {
               autoCapitalize="none"></TextInput>
           </View>
         </View>
-  
+
         <TouchableOpacity onPress={this.handleSingUp}>
           <Text style={GlobalStyles.botonAzul}>Crear Cuenta</Text>
         </TouchableOpacity>
-  
+
         <TouchableOpacity onPress={()=>this.props.navigation.navigate("Login")} style={GlobalStyles.alinearIzquierda}>
             <Text style={GlobalStyles.botonSubrayado}>Cancelar</Text>
         </TouchableOpacity>
