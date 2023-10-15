@@ -1,8 +1,14 @@
-import { Text, View, TouchableOpacity, ActivityIndicator } from "react-native";
+import { Text, View, TouchableOpacity } from "react-native";
 import React from "react";
-import GlobalStyles from "../GlobalStyles";
 import { TextInput } from "react-native-gesture-handler";
-import firebase from "firebase/compat";
+
+import FontStyle from "../style/FontStyle";
+import FormularioStyle from "../style/FormularioStyle";
+import ContainerStyles from "../style/ContainerStyles";
+import UtilidadesStyle from "../style/UtilidadesStyle";
+
+import { auth } from "../config/firebase";
+import { verificarErrorFirebase } from "../config/funciones";
 
 export default class LoginScreen extends React.Component {
 
@@ -20,40 +26,36 @@ export default class LoginScreen extends React.Component {
     }else if (!password){
       this.setState({errorMessage: "Debe rellenar el campo de contraseña"});
     } else{
-      firebase
-      .auth()
-      .signInWithEmailAndPassword(email,password)
-      .catch(error =>  error.code === "auth/invalid-email" ? this.setState({errorMessage: "Debe ingresar un correo valido"})
-                      : error.code === "auth/invalid-login-credentials" ? this.setState({errorMessage: "Email o contraseña incorrectos"})
-                      : this.setState({errorMessage: "Hubo un error al iniciar sesión"}));
+      auth.signInWithEmailAndPassword(email,password)
+      .catch(error => this.setState({errorMessage: verificarErrorFirebase(error.code)}));
     }
   }
 
   render(){
     return (
-      <View style={[GlobalStyles.contenedorCentrado, GlobalStyles.contenidoPantalla]}>
-        <Text style={GlobalStyles.titulo}>Iniciar Sesión</Text>
+      <View style={[ContainerStyles.contenedorCentrado, UtilidadesStyle.width80Perc , ContainerStyles.contenidoPantalla]}>
+        <Text style={[FontStyle.titulo, UtilidadesStyle.marginVertical10]}>Iniciar Sesión</Text>
         <View>
-          {this.state.errorMessage && <Text style={GlobalStyles.error}>{this.state.errorMessage}</Text>}
+          {this.state.errorMessage && <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>}
         </View>
   
-        <View style={GlobalStyles.form}>
-          <View>
-            <Text>Email</Text>
+        <View>
+          <View style={UtilidadesStyle.marginVertical10}>
+            <Text style={FontStyle.parrafo}>Correo:</Text>
             <TextInput 
               keyboardType="email-address"
               placeholder="Ingresa tu email..."
-              style={GlobalStyles.input} 
+              style={FormularioStyle.input} 
               onChangeText={email => this.setState({email})} 
               value={this.state.email}
               autoCapitalize="none"></TextInput>
           </View>
   
-          <View>
-            <Text>Contraseña</Text>
+          <View style={UtilidadesStyle.marginVertical10}>
+            <Text style={FontStyle.parrafo}>Contraseña:</Text>
             <TextInput 
               placeholder="Ingresa tu contraseña..."
-              style={GlobalStyles.input} 
+              style={FormularioStyle.input} 
               secureTextEntry 
               onChangeText={password => this.setState({password})} 
               value={this.state.password}
@@ -62,15 +64,16 @@ export default class LoginScreen extends React.Component {
         </View>
   
         <TouchableOpacity onPress={this.handleLogin}>
-            { this.state.loading ? (
-            <ActivityIndicator style={GlobalStyles.botonAzul} color="#ffffff" size="small"></ActivityIndicator>
-            ):(
-              <Text style={GlobalStyles.botonAzul}>Ingresar</Text>
-            )}
+          <Text style={[FormularioStyle.botonBase,
+                        FormularioStyle.botonAzul, 
+                        UtilidadesStyle.marginVertical10]}>Ingresar</Text>
         </TouchableOpacity>
   
-        <TouchableOpacity onPress={()=>this.props.navigation.navigate("Register")} style={GlobalStyles.alinearIzquierda}>
-            <Text style={GlobalStyles.botonSubrayado}>Crear Cuenta</Text>
+        <TouchableOpacity onPress={()=>this.props.navigation.navigate("Register")}>
+            <Text style={[FormularioStyle.botonBase,
+                          FormularioStyle.botonSubrayado, 
+                          UtilidadesStyle.marginVertical10,
+                          UtilidadesStyle.alinearIzquierda]}>Crear Cuenta</Text>
         </TouchableOpacity>
       </View>
     );

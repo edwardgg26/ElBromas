@@ -1,7 +1,7 @@
 import { Text, View, ActivityIndicator } from 'react-native'
 import React from 'react';
-import GlobalStyles from '../GlobalStyles';
 import firebase from "firebase/compat";
+import ContainerStyles from '../style/ContainerStyles';
 
 export default class LoadingScreen extends React.Component {
   componentDidMount(){
@@ -13,7 +13,7 @@ export default class LoadingScreen extends React.Component {
 
   render(){
     return (
-      <View style={GlobalStyles.contenedorCentrado}>
+      <View style={ContainerStyles.contenedorCentrado}>
         <Text>Cargando...</Text>
         <ActivityIndicator size="large"></ActivityIndicator>
       </View>

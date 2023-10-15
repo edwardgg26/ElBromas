@@ -1,42 +1,71 @@
-import { Text, View, TouchableOpacity, LayoutAnimation, ScrollView, StyleSheet} from "react-native";
+import { Text, View, TouchableOpacity, ScrollView, StyleSheet} from "react-native";
 import React from "react";
-import GlobalStyles from "../GlobalStyles";
+
+import FontStyle from "../style/FontStyle";
+import ContainerStyles from "../style/ContainerStyles";
+import UtilidadesStyle from "../style/UtilidadesStyle";
+
 import TabMenu from "../components/TabMenu";
 import Header from "../components/Header";
-import firebase from "firebase/compat";
+
+import { db , auth } from "../config/firebase";
 
 export default class CategorieScreen extends React.Component {
+  state = {
+    categorias: []
+  };
+  componentDidMount() {
+    this.cargarCategorias();
+  }
+
+  componentDidUpdate(prevProps,prevState){
+    if(this.state !== prevState){
+      this.cargarCategorias();
+    }
+  }
+
+  cargarCategorias = async () => {
+    const referenciaUsuario = db.collection("categorias");
+
+    referenciaUsuario.get()
+      .then((querySnapshot) => {
+        const datosArray = [];
+        querySnapshot.forEach((doc) => {
+          datosArray.push({ id: doc.id, ...doc.data() });
+        });
+        
+        this.setState({categorias: datosArray});
+      })
+      .catch((error) => {
+        console.error('Error al obtener datos: ', error);
+      });
+  } 
+
   render() {
+
+    const { categorias } = this.state;
+
     return (
-      <View style={GlobalStyles.contenedorPantalla}>
+      <View style={ContainerStyles.contenedorPantalla}>
         <Header/>
 
-        <ScrollView style={GlobalStyles.contenidoPantalla}>
-          <Text style={GlobalStyles.subtitulo}>Categorias</Text>
+        <ScrollView style={ContainerStyles.contenidoPantalla}>
+          <Text style={[FontStyle.subtitulo, UtilidadesStyle.marginVertical10, UtilidadesStyle.marginTop20]}>Categorias</Text>
 
-          <TouchableOpacity
-            onPress={() => this.props.navigation.navigate("Home")}
-          >
-            <Text style={styles.categoria}>Categoria 1</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => this.props.navigation.navigate("Home")}
-          >
-            <Text style={styles.categoria}>Categoria 2</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => this.props.navigation.navigate("Home")}
-          >
-            <Text style={styles.categoria}>Categoria 3</Text>
-          </TouchableOpacity>
+          {categorias.map((dato) => (
+            <TouchableOpacity key={dato.id} style={UtilidadesStyle.marginVertical10}
+            onPress={() => this.props.navigation.navigate("Home",{id: dato.id})}
+            >
+              <Text style={[FontStyle.parrafo,styles.categoria]}>{dato.tipo}</Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         <TabMenu
           home={() => this.props.navigation.navigate("Home")}
+          subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile")}
+          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
         />
       </View>
     );

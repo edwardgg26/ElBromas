@@ -13,9 +13,6 @@ import RegisterScreen from "./src/screens/RegisterScreen";
 
 import LoadingScreen from "./src/screens/LoadingScreen";
 
-import {getFirestore} from "firebase/firestore";
-import firebase from "./src/config/firebase";
-
 const AppStack = createStackNavigator({
     Home: HomeScreen,
     Categories: CategoriesScreen,

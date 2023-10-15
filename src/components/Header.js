@@ -1,12 +1,12 @@
 import { Text, StyleSheet, View } from 'react-native'
 import React from 'react';
-import GlobalStyles from '../GlobalStyles';
+import FontStyle from '../style/FontStyle';
 
 export default class Header extends React.Component {
   render() {
     return (
       <View style={styles.contenedorHeader}>
-        <Text style={GlobalStyles.titulo}>ElBromas</Text>
+        <Text style={FontStyle.titulo}>ElBromas</Text>
       </View>
     )
   }
@@ -19,6 +19,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         borderBottomWidth: StyleSheet.hairlineWidth,
         backgroundColor: "#ffffff",
-        maxHeight: 70
+        height: 80,
+        position: 'absolute',
+        top: 0,
+        width: "100%",
+        zIndex: 100,
+        paddingTop: 10
     }
 })

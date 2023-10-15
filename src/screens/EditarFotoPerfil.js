@@ -1,100 +1,131 @@
-import { Text, View, TouchableOpacity, LayoutAnimation, ScrollView, Image, Platform } from 'react-native'
+import { Text, View, TouchableOpacity, ScrollView, Image , StyleSheet} from 'react-native'
 import React from 'react'
-import GlobalStyles from "../GlobalStyles";
-import firebase from 'firebase/compat/app';
-import Header from '../components/Header';
-import TabMenu from '../components/TabMenu';
 import * as ImagePicker from "expo-image-picker";
 
-  // const addProfilePhoto = async () => {
-  //   // const {status} = getPermission();
+import ContainerStyles from '../style/ContainerStyles';
+import FontStyle from '../style/FontStyle';
+import FormularioStyle from '../style/FormularioStyle';
+import UtilidadesStyle from '../style/UtilidadesStyle';
+import { color } from '../style/VariablesStyle';
 
-  //   // if(status !== "granted"){
-  //   //   alert("Status: ",status);
+import Header from '../components/Header';
+import TabMenu from '../components/TabMenu';
 
-  //   //   return;
-  //   // }
-
-  //   pickImage();
-  // }
-
+import { auth, storage, db } from '../config/firebase';
+import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
 
 export default class EditarFotoPerfil extends React.Component {
 
   state = {
-    image: ""
+    image: "",
+    errorMessage: null
   }
 
-  seleccionarImagen = async() => {
+  addProfilePhoto = async() => {
+    if(this.state.image){
 
-    // ImagePicker.openPicker(
-    //   {
-    //     cropping: true,
-    //     forceJpg: true,
-    //     maxFiles:1,
-    //     height:2000,
-    //     width:2000
-    //   }
-    // ).then(image => {
-    //   console.log(image);
-    //   const imageUri = Platform.OS === 'android' ? image.sourceURL: image.path;
-    //   this.setState({image:imageUri});
-    // })
+      const response = await fetch(this.state.image);
+      const blob = await response.blob();
 
-    try {
-      let result = ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1,1],
-        quality: 0.5
+      const idUser = auth.currentUser.uid;
+      const reference =  ref(storage,`profilePhoto/${idUser}`);
+
+      await uploadBytes(reference, blob).then(() => {
+        getDownloadURL(reference).then(url => {
+          const batch = db.batch();
+          const referenciaUsuario = db.collection("users").doc(idUser);
+          const referenciaMemes = db.collection("memes").where("user.uid","==",idUser);
+          batch.update(referenciaUsuario,{
+            photoURL: url
+          })
+          referenciaMemes.get().then(async querySnapshot => {
+            querySnapshot.forEach((doc)=>{
+              var postRef = db.collection("memes").doc(doc.id);
+              batch.update(postRef, {"user.photoURL": url});
+            })
+            await batch.commit()
+            .then(result => this.props.navigation.navigate("Home"))
+            .catch(error => console.log(error));
+          }).catch(error => console.log(error))
+        })
+      }).catch(error => {
+        console.log(error.message);
       });
-      if (!(await result).canceled) {
-        this.setState({image: (await result).assets[0].uri});
-        console.log(this.state.image);
-      }
+    }
+  }
 
-    } catch (error) {
-      console.log("Error @pickImage: ",error);
+  pickImage = async() => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1,1],
+      quality: 0.5
+    });
+    if (!result.canceled) {
+      this.setState({image: result.assets[0].uri});
     }
   }
 
   render() {
+     
     return (
-      <View style={GlobalStyles.contenedorPantalla}>
+      <View style={ContainerStyles.contenedorPantalla}>
         <Header/>
 
-        <ScrollView style={GlobalStyles.contenidoPantalla}>
-          <Text style={GlobalStyles.subtitulo}>Editar Foto de Perfil</Text>
+        <ScrollView contentContainerStyle={[ContainerStyles.contenidoPantalla]}
+                    style={ContainerStyles.contenidoPantalla}>
+
+          <Text style={[FontStyle.subtitulo,
+                        UtilidadesStyle.marginVertical10,
+                        UtilidadesStyle.marginTop20]}>Editar Foto de Perfil</Text>
+
+          <View>
+            {this.state.errorMessage && (
+              <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>
+            )}
+          </View>
 
           <TouchableOpacity
-            onPress={this.seleccionarImagen}
+            onPress={this.pickImage}
+            style={[ContainerStyles.contenedorHorizontal,
+                    UtilidadesStyle.marginVertical10]}
           >
-            <Text style={GlobalStyles.botonGris}>Selecciona una Imagen</Text>
-          </TouchableOpacity>
+            <View style={styles.imagenPerfil}>
+              {this.state.image && <Image source={{ uri: this.state.image }} style={{ width: 48, height: 48 }} />}
+            </View>
 
-          {this.state.image && <Image source={{uri:this.state.image}}></Image>}
+            <Text style={[FontStyle.parrafo,UtilidadesStyle.marginLeft10]}>Selecciona una Imagen</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => this.props.navigation.navigate("Profile")}
+            onPress={this.addProfilePhoto}
           >
-            <Text style={GlobalStyles.botonAzul}>Subir</Text>
+            <Text style={[FormularioStyle.botonBase, 
+                          FormularioStyle.botonAzul,
+                          UtilidadesStyle.marginVertical10]}>Subir</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={()=>this.props.navigation.navigate("Profile")} style={GlobalStyles.alinearIzquierda}>
-            <Text style={GlobalStyles.botonSubrayado}>Cancelar</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity onPress={()=>console.log(this.state.image)} style={GlobalStyles.alinearIzquierda}>
-            <Text style={GlobalStyles.botonSubrayado}>Probar imagen</Text>
+          <TouchableOpacity onPress={()=>this.props.navigation.navigate("Profile")}>
+            <Text style={[FormularioStyle.botonBase, FormularioStyle.botonGris]}>Cancelar</Text>
           </TouchableOpacity>
         </ScrollView>
 
         <TabMenu
           home={() => this.props.navigation.navigate("Home")}
+          subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile")}
+          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
         />
       </View>
     );
   }
 }
+const styles = StyleSheet.create({
+  imagenPerfil: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow:'hidden',
+    backgroundColor: color.gris
+  }
+});
