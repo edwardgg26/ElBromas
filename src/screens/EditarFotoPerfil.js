@@ -1,6 +1,5 @@
-import { Text, View, TouchableOpacity, ScrollView, Image , StyleSheet} from 'react-native'
+import { Text, View, TouchableOpacity, ScrollView, Image , StyleSheet } from 'react-native'
 import React from 'react'
-import * as ImagePicker from "expo-image-picker";
 
 import ContainerStyles from '../style/ContainerStyles';
 import FontStyle from '../style/FontStyle';
@@ -10,64 +9,42 @@ import { color } from '../style/VariablesStyle';
 
 import Header from '../components/Header';
 import TabMenu from '../components/TabMenu';
+import BotonBase from '../components/BotonBase';
 
-import { auth, storage, db } from '../config/firebase';
-import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
+import { seleccionarImagen, verificarError } from '../config/funciones';
+import { auth } from '../config/firebase';
+import UserViewModel from '../viewmodel/UserViewModel';
 
 export default class EditarFotoPerfil extends React.Component {
 
   state = {
     image: "",
+    loading: false,
     errorMessage: null
   }
 
   addProfilePhoto = async() => {
+    this.setState({loading: true});
     if(this.state.image){
-
-      const response = await fetch(this.state.image);
-      const blob = await response.blob();
-
-      const idUser = auth.currentUser.uid;
-      const reference =  ref(storage,`profilePhoto/${idUser}`);
-
-      await uploadBytes(reference, blob).then(() => {
-        getDownloadURL(reference).then(url => {
-          const batch = db.batch();
-          const referenciaUsuario = db.collection("users").doc(idUser);
-          const referenciaMemes = db.collection("memes").where("user.uid","==",idUser);
-          batch.update(referenciaUsuario,{
-            photoURL: url
-          })
-          referenciaMemes.get().then(async querySnapshot => {
-            querySnapshot.forEach((doc)=>{
-              var postRef = db.collection("memes").doc(doc.id);
-              batch.update(postRef, {"user.photoURL": url});
-            })
-            await batch.commit()
-            .then(result => this.props.navigation.navigate("Home"))
-            .catch(error => console.log(error));
-          }).catch(error => console.log(error))
-        })
-      }).catch(error => {
-        console.log(error.message);
-      });
+      const respuesta = await UserViewModel.editarFotoDePerfil(auth.currentUser.uid, this.state.image);
+      if(respuesta === "completado"){
+        this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid});
+      }else{
+        this.setState({errorMessage: verificarError(respuesta),loading:false});
+      }
+    }else{
+      this.setState({errorMessage: verificarError("no-image-selected"),loading:false});
     }
   }
 
   pickImage = async() => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1,1],
-      quality: 0.5
-    });
-    if (!result.canceled) {
-      this.setState({image: result.assets[0].uri});
+    let result = await seleccionarImagen("perfil");
+    if (result !== "no-permission" && !result.canceled) {
+      this.setState({image: result.assets[0].uri, errorMessage: null});
     }
   }
 
   render() {
-     
     return (
       <View style={ContainerStyles.contenedorPantalla}>
         <Header/>
@@ -79,12 +56,14 @@ export default class EditarFotoPerfil extends React.Component {
                         UtilidadesStyle.marginVertical10,
                         UtilidadesStyle.marginTop20]}>Editar Foto de Perfil</Text>
 
+          {/* Mensaje de error */}
           <View>
             {this.state.errorMessage && (
               <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>
             )}
           </View>
 
+          {/* Seleccionar imagen */}
           <TouchableOpacity
             onPress={this.pickImage}
             style={[ContainerStyles.contenedorHorizontal,
@@ -97,21 +76,13 @@ export default class EditarFotoPerfil extends React.Component {
             <Text style={[FontStyle.parrafo,UtilidadesStyle.marginLeft10]}>Selecciona una Imagen</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={this.addProfilePhoto}
-          >
-            <Text style={[FormularioStyle.botonBase, 
-                          FormularioStyle.botonAzul,
-                          UtilidadesStyle.marginVertical10]}>Subir</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={()=>this.props.navigation.navigate("Profile")}>
-            <Text style={[FormularioStyle.botonBase, FormularioStyle.botonGris]}>Cancelar</Text>
-          </TouchableOpacity>
+          {/* Seccion de botones */}
+          <BotonBase tipo="azul" funcion={this.addProfilePhoto} texto="Subir" loadButton={true}/>
+          <BotonBase tipo="gris" funcion={()=>this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})} texto="Cancelar" loadButton={false}/>
         </ScrollView>
 
         <TabMenu
-          home={() => this.props.navigation.navigate("Home")}
+          home={() => this.props.navigation.navigate("Home",{id: -2})}
           subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
           profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}

@@ -1,3 +1,4 @@
+import { LogBox } from "react-native";
 import { createAppContainer, createSwitchNavigator } from "react-navigation";
 import { createStackNavigator } from "react-navigation-stack";
 
@@ -31,7 +32,12 @@ const AuthStack = createStackNavigator({
     headerMode: "none"
 });
 
+LogBox.ignoreLogs([
+  "Require cycles"
+])
+
 export default createAppContainer(
+  
   createSwitchNavigator(
     {
       Loading: LoadingScreen,

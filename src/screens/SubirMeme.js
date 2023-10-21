@@ -1,6 +1,7 @@
-import { Text, View, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native'
-import React from 'react'
-import * as ImagePicker from "expo-image-picker";
+import { Text, View, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
+import React from 'react';
+import SectionedMultiSelect from 'react-native-sectioned-multi-select';
+import { MaterialIcons } from '@expo/vector-icons';
 
 import FontStyle from '../style/FontStyle';
 import FormularioStyle from '../style/FormularioStyle';
@@ -10,78 +11,71 @@ import { color } from '../style/VariablesStyle';
 
 import Header from '../components/Header';
 import TabMenu from '../components/TabMenu';
+import BotonBase from '../components/BotonBase';
 
-import { auth , storage, db } from '../config/firebase';
-import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
+import { auth  } from '../config/firebase';
+import { seleccionarImagen , verificarError} from '../config/funciones';
+import CategorieViewModel from "../viewmodel/CategorieViewModel";
+import MemeViewModel from '../viewmodel/MemeViewModel';
 
 export default class SubirMeme extends React.Component {
 
   state = {
-    image: ""
+    image: "",
+    errorMessage: null,
+    selectedCategories: [],
+    categorias: []
   }
 
+  async componentDidMount(){
+    //Cargar el usuario por medio del id de este dado por props
+    const categorias = await CategorieViewModel.obtener()
+    .catch(error => this.setState({errorMessage: verificarError(error)}));
+    this.setState({ categorias });
+  }
+  
   uploadMeme = async() => {
-    
     if(this.state.image){
-
-      const response = await fetch(this.state.image);
-      const blob = await response.blob();
-
-      const referenciaUsuario = db.collection("users").doc(auth.currentUser.uid);
-      const referenciaColeccion = db.collection("memes");
-      const fecha = new Date().toISOString();
-      
-      const referenciaImagen =  ref(storage,`meme/${fecha}`);
-      
-      await referenciaUsuario.get()
-      .then((doc) => {
-        if (doc.exists) {
-          uploadBytes(referenciaImagen, blob)
-          .then(() => {
-            getDownloadURL(referenciaImagen).then(url => {
-              referenciaColeccion.doc().set({
-                fecha: fecha,
-                photoURL: url,
-                user: {
-                  uid: auth.currentUser.uid,
-                  ...doc.data()
-                },
-                likes: []
-              })
-            })
-          })   
-          this.props.navigation.navigate("Home");
+      if(this.state.selectedCategories.length !== 0){
+        const respuesta = await MemeViewModel.subirMeme(auth.currentUser.uid, this.state.image, this.state.selectedCategories);
+        if(respuesta === "completado"){
+          this.props.navigation.navigate("Home",{id: -2});
         }else{
-          console.log("No hay documento con el ID proporcionado.");
-        }})
-      .catch((error) => {
-        console.error("Error al obtener el documento: ", error);
-      });
+          this.setState({errorMessage: verificarError(respuesta)});
+        }
+      }else{
+        this.setState({errorMessage: verificarError("no-category-selected")});
+      }
+    }else{
+      this.setState({errorMessage: verificarError("no-image-selected")});
     }
   }
 
   pickImage = async() => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.5
-    });
-
-    if (!result.canceled) {
-      this.setState({image: result.assets[0].uri});
+    let result = await seleccionarImagen("meme");
+    if (result !== "no-permission" && !result.canceled) {
+      this.setState({image: result.assets[0].uri, errorMessage: null});
     }
   }
 
-  render() {
+  render(){
     return (
       <View style={ContainerStyles.contenedorPantalla}>
         <Header/>
-
+       
         <ScrollView style={ContainerStyles.contenidoPantalla}>
           <Text style={[FontStyle.subtitulo, 
                         UtilidadesStyle.marginVertical10, 
                         UtilidadesStyle.marginTop20]}>Subir Meme</Text>
 
+          {/* Mensaje de error */}
+          <View>
+            {this.state.errorMessage && (
+              <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>
+            )}
+          </View>
+
+          {/* Seleccionar imagen */}
           <TouchableOpacity
             onPress={this.pickImage}
             style={[ContainerStyles.contenedorHorizontal,
@@ -93,32 +87,33 @@ export default class SubirMeme extends React.Component {
 
             <Text style={[FontStyle.parrafo,UtilidadesStyle.marginLeft10]}>Selecciona una Imagen</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => this.props.navigation.navigate("Home")}
-          >
-            <Text style={[FormularioStyle.botonBase, 
-                          FormularioStyle.botonGris, 
-                          UtilidadesStyle.marginVertical10]}>Selecciona una Categoria</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={this.uploadMeme}
-          >
-            <Text style={[FormularioStyle.botonBase, 
-                          FormularioStyle.botonAzul,
-                          UtilidadesStyle.marginVertical10]}>Subir Meme</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={()=>this.props.navigation.navigate("Home")}>
-            <Text style={[FormularioStyle.botonBase, 
-                          FormularioStyle.botonGris,
-                          UtilidadesStyle.marginVertical10]}>Cancelar</Text>
-          </TouchableOpacity>
+          
+          {/* Mostrar lista de categorias */}
+          <View>
+            <SectionedMultiSelect
+              items={this.state.categorias}
+              uniqueKey="id"
+              displayKey="tipo"
+              searchPlaceholderText="Buscar categorias..."
+              confirmText="Confirmar"
+              showCancelButton={true}
+              showRemoveAll={true}
+              removeAllText='Eliminar Todo'
+              colors={{cancel:color.rojo , primary:color.azul}}
+              IconRenderer={MaterialIcons}
+              selectText="Escoge una o mas categorias"
+              onSelectedItemsChange={selectedCategories => this.setState({ selectedCategories, errorMessage: null })}
+              selectedItems={this.state.selectedCategories}
+            />
+          </View>
+        
+          {/* Botones */}
+          <BotonBase tipo="azul" funcion={this.uploadMeme} texto="Subir Meme" loadButton={true}/>
+          <BotonBase tipo="gris" funcion={()=>this.props.navigation.navigate("Home",{id: -2})} texto="Cancelar" loadButton={false}/>
         </ScrollView>
 
         <TabMenu
-          home={() => this.props.navigation.navigate("Home")}
+          home={() => this.props.navigation.navigate("Home",{id: -2})}
           subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
           profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}

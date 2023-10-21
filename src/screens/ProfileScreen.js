@@ -7,7 +7,7 @@ import {
   StyleSheet
 } from "react-native";
 import React from "react";
-import { Ionicons } from "@expo/vector-icons";
+import { SimpleLineIcons , Ionicons } from "@expo/vector-icons";
 
 import FontStyle from "../style/FontStyle";
 import UtilidadesStyle from "../style/UtilidadesStyle";
@@ -18,69 +18,60 @@ import TabMenu from "../components/TabMenu";
 import Header from "../components/Header";
 import Meme from "../components/Meme";
 
-import { auth, db } from "../config/firebase";
+import { auth } from "../config/firebase";
+import MemeViewModel from "../viewmodel/MemeViewModel";
+import UserViewModel from "../viewmodel/UserViewModel";
+import { verificarError } from "../config/funciones";
 
 export default class ProfileScreen extends React.Component {
   state = {
     infoUsuario: null,
+    errorMessage: false,
     memes: []
   };
 
-  componentDidMount() {
-    const {uid} = this.props.navigation.state.params; 
-    this.cargarDatosUsuario(uid);
-    this.cargarMemesUsuario(uid);
-  }
-
-  componentDidUpdate(prevProps,prevState){
+  async componentDidMount() {
     const {uid} = this.props.navigation.state.params;
-    if(this.state !== prevState){
-      this.cargarMemesUsuario(uid);
+
+    this.cargarUsuario(uid);
+  }
+
+  async componentDidUpdate(prevProps,prevState){
+    const {uid} = this.props.navigation.state.params;
+
+    if(this.state.memes !== prevState.memes || this.props !== prevProps){
+      this.cargarUsuario(uid);
     }
-    if(this.props !== prevProps){
-      this.cargarDatosUsuario(uid);
+  }
+
+  cargarUsuario = async(uid) => {
+    //Cargar el usuario por medio del id de este dado por props
+    const infoUsuario = await UserViewModel.obtener(uid)
+    .catch(error => this.setState({errorMessage: verificarError(error)}));
+
+    //Cargar los memes por medio del id del usuario dado por props
+    const memes = await MemeViewModel.obtenerPorUsuario(uid)
+    .catch(error => this.setState({errorMessage: verificarError(error)}));
+    this.setState({ infoUsuario , memes });
+  }
+
+  recargarUsuario = async() => {
+    const {uid} = this.props.navigation.state.params;
+    this.cargarUsuario(uid);
+  }
+
+  singOutUser = async() => {
+    const respuesta = await UserViewModel.cerrarSesion();
+
+    if(respuesta !== "completado"){
+      this.setState({errorMessage: verificarError(respuesta)});
     }
-  }
-
-  cargarDatosUsuario = async(uid) =>{
-    const referenciaUsuario = db.collection("users").doc(uid);
-
-    referenciaUsuario.get().then((doc) => {
-      if (doc.exists) {
-        this.setState({ infoUsuario: { id: doc.id, ...doc.data() } });
-      } else {
-        console.log("No hay documento con el ID proporcionado.");
-      }
-    }).catch(error => {
-      console.log("Error al obtener el documento: ", error);
-    })
-  }
-
-  cargarMemesUsuario = async(uid) =>{
-
-    const referenciaMemes = db.collection("memes").where("user.uid","==",uid);
-
-    referenciaMemes.get()
-      .then((querySnapshot) => {
-        const datosArray = [];
-        querySnapshot.forEach((doc) => {
-          datosArray.push({ id: doc.id, ...doc.data() });
-        });
-        this.setState({memes: datosArray});
-      })
-      .catch((error) => {
-        console.error('Error al obtener datos: ', error);
-      });
-  }
-
-  singOutUser = () => {
-    auth.signOut();
   };
 
   render() {
 
-    const { infoUsuario,memes } = this.state;
-    const {uid} = this.props.navigation.state.params; 
+    const { infoUsuario , memes } = this.state;
+    const {uid} = this.props.navigation.state.params;
 
     return (
 
@@ -89,31 +80,22 @@ export default class ProfileScreen extends React.Component {
         
         <ScrollView style={ContainerStyles.contenidoPantalla}>
           <View style={UtilidadesStyle.width60Perc}>
+
             {/* Foto de perfil del usuario */}
             {(infoUsuario === null || infoUsuario.photoURL === "")?(
-              <Image
-                style={styles.imagenPerfil}
-                source={require("../img/no-profile-image.png")}
-              ></Image>
+              <Image style={styles.imagenPerfil} source={require("../img/no-profile-image.png")}></Image>
             ):(
-              <Image
-                style={styles.imagenPerfil}
-                source={{ uri: infoUsuario.photoURL }}
-              ></Image>
+              <Image style={styles.imagenPerfil} source={{ uri: infoUsuario.photoURL }}></Image>
             )}
 
-            {/* Editar foto de perfil */}
+            {/* Boton para Editar foto de perfil */}
             {(auth.currentUser.uid === uid)?(
-              <TouchableOpacity
-                onPress={() => this.props.navigation.navigate("EditarFoto")}
-              >
-                <Ionicons name="pencil" style={[UtilidadesStyle.alinearDerecha, 
-                                                UtilidadesStyle.marginVertical10]} size={iconSize.medium} color={color.azul} />
+              <TouchableOpacity onPress={() => this.props.navigation.navigate("EditarFoto")}>
+                <Ionicons name="pencil" style={[UtilidadesStyle.alinearDerecha, UtilidadesStyle.marginVertical10]} size={iconSize.medium} color={color.azul} />
               </TouchableOpacity>
             ):null}
           </View>
           
-
           {/* Mostrar Nombre de usuario */}
           <Text style={[FontStyle.subtitulo, 
                         UtilidadesStyle.alinearCenter, 
@@ -122,6 +104,8 @@ export default class ProfileScreen extends React.Component {
               infoUsuario.username
             )}
           </Text>
+
+          {/* Mostrar Informacion del usuario */}
           <View>
             <Text style={[FontStyle.subtitulo, 
                           UtilidadesStyle.alinearCenter, 
@@ -129,12 +113,13 @@ export default class ProfileScreen extends React.Component {
               Información del Usuario
             </Text>
 
-            {/* Mostrar Informacion del usuario */}
+            {/* Mostrar email del usuario */}
             <View style={UtilidadesStyle.marginVertical10}>
 
               <Text style={[FontStyle.parrafo,UtilidadesStyle.marginVertical10]}>Correo: {infoUsuario !== null && (infoUsuario.email)}</Text>
             </View>
-            
+
+            {/* Mostrar username */}
             <View style={[ContainerStyles.contenedorHorizontal, 
                          ContainerStyles.contenedorHorizontalSeparado]}>
 
@@ -142,6 +127,7 @@ export default class ProfileScreen extends React.Component {
                             UtilidadesStyle.marginVertical10, 
                             UtilidadesStyle.alinearIzquierda]}>Username: {infoUsuario !== null && (infoUsuario.username)}</Text>
 
+              {/* Mostrar boton para editar usuario */}
               {(auth.currentUser.uid === uid)?(
                 <TouchableOpacity
                   onPress={() => this.props.navigation.navigate("Actualizar")}
@@ -151,31 +137,43 @@ export default class ProfileScreen extends React.Component {
               ):null}
             </View>
 
+            {/* Mostrar boton para cerrar sesion */}
             {(auth.currentUser.uid === uid)?(
               <TouchableOpacity onPress={this.singOutUser}>
                 <Text style={[FontStyle.parrafo, 
                               UtilidadesStyle.colorRed, 
                               UtilidadesStyle.marginVertical10]}>Cerrar Sesión</Text>
               </TouchableOpacity>
+
+
             ):null}
             
           </View>
           
+          {/* Mostrar memes del usuario */}
           {memes.length !== 0 && (  
-          <Text style={[FontStyle.subtitulo, 
-                        UtilidadesStyle.alinearIzquierda,
-                        UtilidadesStyle.marginVertical10]}>
-            Memes Publicados
-          </Text>
-          )}
 
+            <View style={[ContainerStyles.contenedorHorizontal , ContainerStyles.contenedorHorizontalSeparado]}>
+              <Text style={[FontStyle.subtitulo, 
+                            UtilidadesStyle.alinearIzquierda,
+                            UtilidadesStyle.marginVertical10]}>
+                Memes Publicados
+              </Text>
+
+              <TouchableOpacity onPress={this.recargarUsuario}>
+                <SimpleLineIcons name="reload" size={iconSize.medium} color={color.negro} />
+              </TouchableOpacity>
+            </View>
+          
+          )}
+          
           {memes.length !== 0 && memes.map((dato) => (
               <Meme key={dato.id} memePerfil = {true} visitaUsuario = {()=>this.props.navigation.navigate("Profile",{uid: dato.user.uid})} datos={dato} />
           ))}
           
         </ScrollView>
         <TabMenu
-          home={() => this.props.navigation.navigate("Home")}
+          home={() => this.props.navigation.navigate("Home",{id: -2})}
           subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
           profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}

@@ -1,4 +1,4 @@
-import { Text, View, TouchableOpacity, ScrollView } from "react-native";
+import { Text, View, ScrollView } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
 import React from "react";
 
@@ -6,13 +6,14 @@ import FontStyle from "../style/FontStyle";
 import FormularioStyle from "../style/FormularioStyle";
 import ContainerStyles from "../style/ContainerStyles";
 import UtilidadesStyle from "../style/UtilidadesStyle";
-import { color } from "../style/VariablesStyle";
 
 import Header from "../components/Header";
 import TabMenu from "../components/TabMenu";
+import BotonBase from "../components/BotonBase";
 
-import { auth , db } from "../config/firebase";
-import { verificarErrorFirebase } from "../config/funciones";
+import { auth } from "../config/firebase";
+import { verificarError } from "../config/funciones";
+import UserViewModel from "../viewmodel/UserViewModel";
 
 export default class ActualizarDatos extends React.Component {
   state = {
@@ -20,66 +21,31 @@ export default class ActualizarDatos extends React.Component {
     comparaDisplayname: "",
     password: "",
     confirmPassword: "",
-    errorMessage: null
+    passwordActual: "",
+    errorMessage: null,
+    loading: false
   };
 
-  componentDidMount(){
-    this.consultarUsuario();
+  async componentDidMount(){
+    //Se consulta la informacion del usuario desde le viewmodel al cargar la pantalla 
+    //y se almacena en el estado
+    await UserViewModel.obtener(auth.currentUser.uid)
+    .then(result => this.setState({ displayName: result.username, comparaDisplayname: result.username}))
+    .catch(error => this.setState({errorMessage: verificarError(error.code)}));
   }
 
-  consultarUsuario =  async() => {
-    const referenciaUsuario = db.collection("users").doc(auth.currentUser.uid);
+  actualizarUsuario = async() => {
 
-    referenciaUsuario.get().then((doc) => {
-      if (doc.exists) {
-        this.setState({ displayName: doc.data().username, comparaDisplayname: doc.data().username});
-      } else {
-        console.log("No hay documento con el ID proporcionado.");
-      }
-    }).catch(error => {
-      console.log("Error al obtener el documento: ", error);
-    })
-  }
-
-  actualizarUsuario = () => {
-    const { displayName, comparaDisplayname, password, confirmPassword } = this.state;
-    let error = false;
-    auth.signInWithEmailAndPassword(auth.currentUser.email, confirmPassword.trim())
-      .then(async (result) => {
-        if(displayName.trim() !== comparaDisplayname){
-          const referenciaUsuario = db.collection("users").doc(auth.currentUser.uid);
-          const batch = db.batch();
-          const referenciaMemes = db.collection("memes").where("user.uid","==",auth.currentUser.uid);
-          batch.update(referenciaUsuario,{
-            username: displayName
-          });
-          referenciaMemes.get().then(async querySnapshot => {
-            querySnapshot.forEach((doc)=>{
-              var postRef = db.collection("memes").doc(doc.id);
-              batch.update(postRef, {"user.username": displayName});
-            })
-            await batch.commit()
-            .then(result => this.props.navigation.navigate("Home"))
-            .catch(error => console.log(error));
-          }).catch(error => console.log(error));
-        }
-
-        if (password) {
-          if (password.length < 8 || !password.match(/[a-z]/) || !password.match(/[A-Z]/) || !password.match(/\d/)) {
-            this.setState({errorMessage: "La contraseña debe contener por lo menos 8 caracteres, combinando mayusculas, minusculas y numeros",});
-          } else {
-            await result.user.updatePassword(password)
-            .catch(error => {
-              this.setState({errorMessage: verificarErrorFirebase(error.code)})
-            });
-          }
-        }
-
-        this.props.navigation.navigate("Home");
-        // if(error === false){
-        // }
-      })
-      .catch(error => this.setState({errorMessage: verificarErrorFirebase(error.code)}));
+    this.setState({loading: true});
+    //Editar informacion
+    const respuesta = await UserViewModel.editarInformacion(this.state);
+    
+    //Cambiar a pantalla de perfil o mostrar error en caso de haberlo
+    if(respuesta === "completado"){
+      this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid});
+    }else{
+      this.setState({errorMessage: verificarError(respuesta), loading: false});
+    }
   };
 
   render() {
@@ -95,18 +61,20 @@ export default class ActualizarDatos extends React.Component {
                         UtilidadesStyle.alinearCenter, 
                         UtilidadesStyle.marginVertical10]}>Actualizar Datos</Text>
 
+          {/* Mensaje de error */}
           <View style={UtilidadesStyle.marginVertical10}>
             {this.state.errorMessage && (
               <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>
             )}
           </View>
 
+          {/* Campos del formulario */}
           <View style={UtilidadesStyle.marginVertical10}>
             <Text style={FontStyle.parrafo}>Nombre de Usuario</Text>
             <TextInput
               placeholder="Ingresa tu apodo unico..."
               style={FormularioStyle.input}
-              onChangeText={(displayName) => this.setState({ displayName })}
+              onChangeText={(displayName) => this.setState({ displayName, errorMessage: null })}
               value={this.state.displayName}
               autoCapitalize="none"
             ></TextInput>
@@ -118,7 +86,7 @@ export default class ActualizarDatos extends React.Component {
               placeholder="Si quieres cambiar tu contraseña..."
               style={FormularioStyle.input}
               secureTextEntry
-              onChangeText={(password) => this.setState({ password })}
+              onChangeText={(password) => this.setState({ password, errorMessage: null })}
               value={this.state.password}
               autoCapitalize="none"
             ></TextInput>
@@ -127,44 +95,38 @@ export default class ActualizarDatos extends React.Component {
           <View style={UtilidadesStyle.marginVertical10}>
             <Text style={FontStyle.parrafo}>Confirmar Contraseña</Text>
             <TextInput
-              placeholder="Confirma tu contraseña..."
+              placeholder="Confirma tu contraseña nueva..."
               style={FormularioStyle.input}
               secureTextEntry
               onChangeText={(confirmPassword) =>
-                this.setState({ confirmPassword })
+                this.setState({ confirmPassword, errorMessage: null })
               }
               value={this.state.confirmPassword}
               autoCapitalize="none"
             ></TextInput>
           </View>
 
-          <View>
-            <TouchableOpacity onPress={this.actualizarUsuario}>
-              {/* {this.state.loading ? (
-                <ActivityIndicator
-                  style={GlobalStyles.botonAzul}
-                  color={color.blanco}
-                  size="small"
-                ></ActivityIndicator>
-              ) : (
-                )} */}
-                <Text style={[FormularioStyle.botonBase, 
-                              FormularioStyle.botonAzul, 
-                              UtilidadesStyle.marginVertical10]}>Actualizar</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => this.props.navigation.navigate("Profile")}
-            >
-              <Text style={[FormularioStyle.botonBase , 
-                            FormularioStyle.botonGris,
-                            UtilidadesStyle.marginVertical10]}>Cancelar</Text>
-            </TouchableOpacity>
+          <View style={UtilidadesStyle.marginVertical10}>
+            <Text style={FontStyle.parrafo}>Contraseña Actual</Text>
+            <TextInput
+              placeholder="Tu contraseña actual..."
+              style={FormularioStyle.input}
+              secureTextEntry
+              onChangeText={(passwordActual) =>
+                this.setState({ passwordActual, errorMessage: null })
+              }
+              value={this.state.passwordActual}
+              autoCapitalize="none"
+            ></TextInput>
           </View>
+
+          {/* Botones del formulario */}
+          <BotonBase tipo="azul" funcion={this.actualizarUsuario} texto="Actualizar" loadButton={true}/>
+          <BotonBase tipo="gris" funcion={()=>this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})} texto="Cancelar" loadButton={false}/>
         </ScrollView>
 
         <TabMenu
-          home={() => this.props.navigation.navigate("Home")}
+          home={() => this.props.navigation.navigate("Home",{id: -2})}
           subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
           profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}

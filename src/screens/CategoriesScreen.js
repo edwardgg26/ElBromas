@@ -8,38 +8,32 @@ import UtilidadesStyle from "../style/UtilidadesStyle";
 import TabMenu from "../components/TabMenu";
 import Header from "../components/Header";
 
-import { db , auth } from "../config/firebase";
+import { auth } from "../config/firebase";
+import CategorieViewModel from "../viewmodel/CategorieViewModel";
 
 export default class CategorieScreen extends React.Component {
   state = {
-    categorias: []
+    categorias: [],
+    errorMessage: null
   };
-  componentDidMount() {
-    this.cargarCategorias();
-  }
 
-  componentDidUpdate(prevProps,prevState){
-    if(this.state !== prevState){
-      this.cargarCategorias();
+  async componentDidMount() {
+    const categorias = await CategorieViewModel.obtener()
+    .catch(error => this.setState({errorMessage: verificarError(error.code)}));
+    if(this.state.errorMessage === null){
+      this.setState({ categorias })
     }
   }
 
-  cargarCategorias = async () => {
-    const referenciaUsuario = db.collection("categorias");
-
-    referenciaUsuario.get()
-      .then((querySnapshot) => {
-        const datosArray = [];
-        querySnapshot.forEach((doc) => {
-          datosArray.push({ id: doc.id, ...doc.data() });
-        });
-        
-        this.setState({categorias: datosArray});
-      })
-      .catch((error) => {
-        console.error('Error al obtener datos: ', error);
-      });
-  } 
+  async componentDidUpdate(prevProps,prevState){
+    if(this.state !== prevState){
+      const categorias = await CategorieViewModel.obtener()
+      .catch(error => this.setState({errorMessage: verificarError(error.code)}));
+      if(this.state.errorMessage === null){
+        this.setState({ categorias })
+      }
+    }
+  }
 
   render() {
 
@@ -62,7 +56,7 @@ export default class CategorieScreen extends React.Component {
         </ScrollView>
 
         <TabMenu
-          home={() => this.props.navigation.navigate("Home")}
+          home={() => this.props.navigation.navigate("Home",{id: -2})}
           subirMeme={() => this.props.navigation.navigate("Subir")}
           categories={() => this.props.navigation.navigate("Categories")}
           profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}

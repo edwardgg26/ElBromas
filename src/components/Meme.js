@@ -6,10 +6,10 @@ import { color, iconSize } from "../style/VariablesStyle";
 import UtilidadesStyle from "../style/UtilidadesStyle";
 import FontStyle from "../style/FontStyle";
 
-import { storage, db , auth } from "../config/firebase";
-import { deleteObject, ref } from "firebase/storage";
-import { arrayRemove, arrayUnion } from "firebase/firestore";
+import { auth } from "../config/firebase";
 import ContainerStyles from "../style/ContainerStyles";
+import MemeViewModel from "../viewmodel/MemeViewModel";
+import { verificarError } from "../config/funciones";
 
 export default class Meme extends Component {
 
@@ -19,50 +19,40 @@ export default class Meme extends Component {
   }
 
   componentDidMount(){
+    //Se recibe el meme consultado por props
     const { datos, visitaUsuario } = this.props;
 
+    //Se pone el meme en el estado
     this.setState({datosMeme: datos, funcionUsuario: visitaUsuario});
   }
 
   borrarMeme = async () =>{
-    const {datosMeme} = this.state;
-
-    const desertRef = ref(storage, `meme/${datosMeme.fecha}`);
-    deleteObject(desertRef).then(async() => {
-      await db.collection("memes").doc(datosMeme.id).delete()
-    }).catch((error) => {
-      console.log(error);
-    });
+    //Eliminar el meme desde el viewmodel
+    const resultado = await MemeViewModel.borrar(this.state.datosMeme);
+    if(resultado !== "completado"){
+      this.setState({errorMessage: verificarError(resultado)});
+    }
   }
 
   reaccion = async() => {
-    const referencia = db.collection("memes");
-
-    if(!this.state.datosMeme.likes.includes(auth.currentUser.uid)){
-      await referencia.doc(this.state.datosMeme.id).update({
-        likes: arrayUnion(auth.currentUser.uid)
-      }).catch(error => console.log(error));
-    }else{
-      await referencia.doc(this.state.datosMeme.id).update({
-        likes: arrayRemove(auth.currentUser.uid)
-      }).catch(error => console.log(error));
+    //Reaccionar al meme desde el viewmodel
+    const resultado = await MemeViewModel.reaccionar(this.state.datosMeme);
+    if(resultado !== "completado"){
+      this.setState({errorMessage: verificarError(resultado)});
     }
 
+    //Recargar el meme
     this.recargarMeme();
   }
 
   recargarMeme = async () =>{
-    const { datos, visitaUsuario } = this.props;
-    const referenciaMemes = db.collection("memes").doc(datos.id);
 
-    referenciaMemes.get().then((doc) => {
-        if(doc.exists){
-          this.setState({ datosMeme: { id: doc.id, ...doc.data() } });
-        }
-      })
-      .catch((error) => {
-        console.error('Error al obtener datos: ', error);
-      });
+    //Consultar el meme nuevamente desde el viewmodel
+    const resultado = await MemeViewModel.obtenerPorId(this.state.datosMeme.id)
+    .catch(error => this.setState({errorMessage: verificarError(error)}));
+    
+    //Establecer el meme en el estado
+    this.setState({datosMeme: resultado});
   }
 
   render() {
@@ -74,15 +64,16 @@ export default class Meme extends Component {
         {/*Informacion del Usuario*/}
         <TouchableOpacity onPress={funcionUsuario} style={ContainerStyles.contenedorHorizontal}>
 
-
           {/*Mostrar Foto de Perfil*/}
           {memePerfil === false?(
             (datosMeme === null || datosMeme.user.photoURL === "")?(
+              //Mostrar foto de usuario sin perfil en caso de que no tenga
               <Image
                 style={styles.imagenPerfil}
                 source={require("../img/no-profile-image.png")}
               ></Image>
             ):(
+              //Mostrar la foto en caso de que tenga una
               <Image
                 style={styles.imagenPerfil}
                 source={{ uri: datosMeme.user.photoURL }}
@@ -99,20 +90,16 @@ export default class Meme extends Component {
          
         </TouchableOpacity>
 
-        {/* Mostrar meme */}
+        {/* Mostrar imagen del meme */}
         {datosMeme !== null && (
-          <Image
-            style={styles.imagenMeme}
-            source={{uri: datosMeme.photoURL}}
-            resizeMode="contain"
-          ></Image>
+          <Image style={styles.imagenMeme} source={{uri: datosMeme.photoURL}} resizeMode="contain"></Image>
         )}
 
         <View style={[ContainerStyles.contenedorHorizontal,
                       ContainerStyles.contenedorHorizontalSeparado,
                       UtilidadesStyle.marginBottom20]}>
           {datosMeme !== null && (
-            //Reaccionar a una publicacion  
+            //Reaccionar a una publicacion
             <TouchableOpacity onPress={this.reaccion} style={ContainerStyles.contenedorHorizontal}>
               {/* Mostrar iconos de reacciones */}
               {!datosMeme.likes.includes(auth.currentUser.uid)?(
@@ -128,7 +115,7 @@ export default class Meme extends Component {
             </TouchableOpacity>
           )}
 
-          {/* Borrar un meme */}
+          {/* Boton para borrar un meme */}
           {datosMeme !== null && memePerfil === true && datosMeme.user.uid === auth.currentUser.uid ?(
             <TouchableOpacity
               onPress={this.borrarMeme}

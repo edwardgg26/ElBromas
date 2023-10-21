@@ -42,6 +42,10 @@ export default StyleSheet.create({
     backgroundColor: color.azul,
     color: color.blanco,
   },
+  botonNegro: {
+    backgroundColor: color.negro,
+    color: color.blanco
+  },
   botonGris: {
     backgroundColor: color.gris,
     color: color.negro
