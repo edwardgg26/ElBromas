@@ -1,51 +1,27 @@
-import { LogBox } from "react-native";
-import { createAppContainer, createSwitchNavigator } from "react-navigation";
-import { createStackNavigator } from "react-navigation-stack";
+import React from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { auth } from "./src/config/firebase";
 
-import HomeScreen from "./src/screens/HomeScreen";
-import SubirMeme from "./src/screens/SubirMeme";
-import CategoriesScreen from "./src/screens/CategoriesScreen";
-import ProfileScreen from "./src/screens/ProfileScreen";
-import EditarFotoPerfil from "./src/screens/EditarFotoPerfil";
-import ActualizarDatos from "./src/screens/ActualizarDatos";
+import AppStack from "./src/stack/AppStack";
+import AuthStack from "./src/stack/AuthStack";
 
-import LoginScreen from "./src/screens/LoginScreen";
-import RegisterScreen from "./src/screens/RegisterScreen";
+export default class App extends React.Component {
 
-import LoadingScreen from "./src/screens/LoadingScreen";
+  state = {
+    isLogged: false
+  }
 
-const AppStack = createStackNavigator({
-    Home: HomeScreen,
-    Categories: CategoriesScreen,
-    Profile: ProfileScreen,
-    Subir: SubirMeme,
-    EditarFoto: EditarFotoPerfil,
-    Actualizar: ActualizarDatos
-},{
-  headerMode: "none"
-});
+  componentDidMount(){
+    auth.onAuthStateChanged(user => {
+      user ? this.setState({isLogged:true}) : this.setState({isLogged:false});
+    })
+  }
 
-const AuthStack = createStackNavigator({
-    Login: LoginScreen,
-    Register: RegisterScreen 
-},{
-    headerMode: "none"
-});
-
-LogBox.ignoreLogs([
-  "Require cycles"
-])
-
-export default createAppContainer(
-  
-  createSwitchNavigator(
-    {
-      Loading: LoadingScreen,
-      App: AppStack,
-      Auth: AuthStack,
-    },
-    {
-      initialRouteName: "Loading"
-    }
-  )
-);
+  render(){
+    return (
+      <NavigationContainer>
+        {this.state.isLogged?<AppStack/>:<AuthStack/>}
+      </NavigationContainer>
+    );
+  }
+}

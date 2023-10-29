@@ -1,22 +1,28 @@
+//Expo React Native y librerias
 import { Text, View, TouchableOpacity, ScrollView, Image, StyleSheet } from 'react-native';
 import React from 'react';
 import SectionedMultiSelect from 'react-native-sectioned-multi-select';
 import { MaterialIcons } from '@expo/vector-icons';
 
+//Estilos
 import FontStyle from '../style/FontStyle';
 import FormularioStyle from '../style/FormularioStyle';
 import ContainerStyles from '../style/ContainerStyles';
 import UtilidadesStyle from '../style/UtilidadesStyle';
 import { color } from '../style/VariablesStyle';
 
+//Componentes
 import Header from '../components/Header';
 import TabMenu from '../components/TabMenu';
 import BotonBase from '../components/BotonBase';
 
+//Firebase y funciones
 import { auth  } from '../config/firebase';
 import { seleccionarImagen , verificarError} from '../config/funciones';
-import CategorieViewModel from "../viewmodel/CategorieViewModel";
-import MemeViewModel from '../viewmodel/MemeViewModel';
+
+//Modulos
+import { obtenerCategorias } from "../modules/CategorieModule";
+import { subirMeme } from '../modules/UserMemeModule';
 
 export default class SubirMeme extends React.Component {
 
@@ -29,7 +35,7 @@ export default class SubirMeme extends React.Component {
 
   async componentDidMount(){
     //Cargar el usuario por medio del id de este dado por props
-    const categorias = await CategorieViewModel.obtener()
+    const categorias = await obtenerCategorias()
     .catch(error => this.setState({errorMessage: verificarError(error)}));
     this.setState({ categorias });
   }
@@ -37,7 +43,7 @@ export default class SubirMeme extends React.Component {
   uploadMeme = async() => {
     if(this.state.image){
       if(this.state.selectedCategories.length !== 0){
-        const respuesta = await MemeViewModel.subirMeme(auth.currentUser.uid, this.state.image, this.state.selectedCategories);
+        const respuesta = await subirMeme(auth.currentUser.uid, this.state.image, this.state.selectedCategories);
         if(respuesta === "completado"){
           this.props.navigation.navigate("Home",{id: -2});
         }else{
@@ -112,12 +118,8 @@ export default class SubirMeme extends React.Component {
           <BotonBase tipo="gris" funcion={()=>this.props.navigation.navigate("Home",{id: -2})} texto="Cancelar" loadButton={false}/>
         </ScrollView>
 
-        <TabMenu
-          home={() => this.props.navigation.navigate("Home",{id: -2})}
-          subirMeme={() => this.props.navigation.navigate("Subir")}
-          categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
-        />
+        <TabMenu parentProps={this.props}/>
+        
       </View>
     );
   }

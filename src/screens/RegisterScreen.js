@@ -10,8 +10,7 @@ import ContainerStyles from "../style/ContainerStyles";
 import UtilidadesStyle from "../style/UtilidadesStyle";
 
 import { verificarError } from "../config/funciones";
-import { color } from "../style/VariablesStyle";
-import UserViewModel from "../viewmodel/UserViewModel";
+import { crear } from "../modules/UserModule";
 
 export default class RegisterScreen extends React.Component {
 
@@ -20,17 +19,18 @@ export default class RegisterScreen extends React.Component {
     email: "",
     password: "",
     confirmPassword: "",
-    loading: false,
     errorMessage: null
   }
 
   handleSingUp = async () => {
-    this.setState({loading: true});
-    const respuesta = await UserViewModel.crear(this.state);
+    //Se llama la funcion "crear" del modulo de usuarios y se le pasa el estado
+    //El cual contiene el email, username, contraseña y contraseña confirmada
+    const respuesta = await crear(this.state);
+
+    //La funcion devuelve una respuesta, en caso de no ser "completado" se imprime el error
     if(respuesta !== "completado"){
       this.setState({errorMessage: verificarError(respuesta)});
     }
-    this.setState({loading: false});
   }
 
   render(){
@@ -40,11 +40,13 @@ export default class RegisterScreen extends React.Component {
                     ContainerStyles.contenidoPantalla]}>
         
         <Text style={[FontStyle.titulo, UtilidadesStyle.marginVertical10]}>Crear Cuenta</Text>
-
+        
+        {/* Mensaje de error */}
         <View>
           {this.state.errorMessage && <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>}
         </View>
 
+        {/* Campos del formulario */}
         <View>
           <View style={UtilidadesStyle.marginVertical10}>
             <Text style={FontStyle.parrafo}>Nombre de Usuario</Text>
@@ -89,7 +91,8 @@ export default class RegisterScreen extends React.Component {
               autoCapitalize="none"></TextInput>
           </View>
         </View>
-
+        
+        {/* Seccion de botones */}
         <BotonBase tipo="azul" funcion={this.handleSingUp} texto="Crear Cuenta" loadButton={true}/>
         <BotonBase tipo="subra" funcion={()=>this.props.navigation.navigate("Login")} texto="Cancelar" loadButton={false}/>
       </View>

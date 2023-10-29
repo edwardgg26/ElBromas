@@ -18,10 +18,10 @@ import TabMenu from "../components/TabMenu";
 import Header from "../components/Header";
 import Meme from "../components/Meme";
 
-import { auth } from "../config/firebase";
-import MemeViewModel from "../viewmodel/MemeViewModel";
-import UserViewModel from "../viewmodel/UserViewModel";
 import { verificarError } from "../config/funciones";
+import { auth } from "../config/firebase";
+import { obtenerPorUsuario } from "../modules/MemeModule";
+import { obtenerUsuario , cerrarSesion } from "../modules/UserModule";
 
 export default class ProfileScreen extends React.Component {
   state = {
@@ -31,13 +31,13 @@ export default class ProfileScreen extends React.Component {
   };
 
   async componentDidMount() {
-    const {uid} = this.props.navigation.state.params;
+    const {uid} = this.props.route.params;
 
     this.cargarUsuario(uid);
   }
 
   async componentDidUpdate(prevProps,prevState){
-    const {uid} = this.props.navigation.state.params;
+    const {uid} = this.props.route.params;
 
     if(this.state.memes !== prevState.memes || this.props !== prevProps){
       this.cargarUsuario(uid);
@@ -46,22 +46,22 @@ export default class ProfileScreen extends React.Component {
 
   cargarUsuario = async(uid) => {
     //Cargar el usuario por medio del id de este dado por props
-    const infoUsuario = await UserViewModel.obtener(uid)
+    const infoUsuario = await obtenerUsuario(uid)
     .catch(error => this.setState({errorMessage: verificarError(error)}));
 
     //Cargar los memes por medio del id del usuario dado por props
-    const memes = await MemeViewModel.obtenerPorUsuario(uid)
+    const memes = await obtenerPorUsuario(uid)
     .catch(error => this.setState({errorMessage: verificarError(error)}));
     this.setState({ infoUsuario , memes });
   }
 
   recargarUsuario = async() => {
-    const {uid} = this.props.navigation.state.params;
+    const {uid} = this.props.route.params;
     this.cargarUsuario(uid);
   }
 
   singOutUser = async() => {
-    const respuesta = await UserViewModel.cerrarSesion();
+    const respuesta = await cerrarSesion();
 
     if(respuesta !== "completado"){
       this.setState({errorMessage: verificarError(respuesta)});
@@ -71,7 +71,7 @@ export default class ProfileScreen extends React.Component {
   render() {
 
     const { infoUsuario , memes } = this.state;
-    const {uid} = this.props.navigation.state.params;
+    const {uid} = this.props.route.params;
 
     return (
 
@@ -172,12 +172,8 @@ export default class ProfileScreen extends React.Component {
           ))}
           
         </ScrollView>
-        <TabMenu
-          home={() => this.props.navigation.navigate("Home",{id: -2})}
-          subirMeme={() => this.props.navigation.navigate("Subir")}
-          categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
-        />
+        
+        <TabMenu parentProps={this.props}/>
       </View>
     );
   }

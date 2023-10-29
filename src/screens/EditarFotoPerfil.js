@@ -13,27 +13,26 @@ import BotonBase from '../components/BotonBase';
 
 import { seleccionarImagen, verificarError } from '../config/funciones';
 import { auth } from '../config/firebase';
-import UserViewModel from '../viewmodel/UserViewModel';
+
+import { editarFotoDePerfil } from '../modules/UserMemeModule';
 
 export default class EditarFotoPerfil extends React.Component {
 
   state = {
     image: "",
-    loading: false,
     errorMessage: null
   }
 
   addProfilePhoto = async() => {
-    this.setState({loading: true});
     if(this.state.image){
-      const respuesta = await UserViewModel.editarFotoDePerfil(auth.currentUser.uid, this.state.image);
+      const respuesta = await editarFotoDePerfil(auth.currentUser.uid, this.state.image);
       if(respuesta === "completado"){
         this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid});
       }else{
-        this.setState({errorMessage: verificarError(respuesta),loading:false});
+        this.setState({errorMessage: verificarError(respuesta)});
       }
     }else{
-      this.setState({errorMessage: verificarError("no-image-selected"),loading:false});
+      this.setState({errorMessage: verificarError("no-image-selected")});
     }
   }
 
@@ -81,12 +80,7 @@ export default class EditarFotoPerfil extends React.Component {
           <BotonBase tipo="gris" funcion={()=>this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})} texto="Cancelar" loadButton={false}/>
         </ScrollView>
 
-        <TabMenu
-          home={() => this.props.navigation.navigate("Home",{id: -2})}
-          subirMeme={() => this.props.navigation.navigate("Subir")}
-          categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
-        />
+        <TabMenu parentProps={this.props}/>
       </View>
     );
   }

@@ -1,21 +1,22 @@
-import { Text, StyleSheet, View, Image, TouchableOpacity, Dimensions } from "react-native";
+import { Text, StyleSheet, View, Image, TouchableOpacity, Dimensions, ActivityIndicator } from "react-native";
 import React, { Component } from "react";
 import { AntDesign } from "@expo/vector-icons";
 
 import { color, iconSize } from "../style/VariablesStyle";
 import UtilidadesStyle from "../style/UtilidadesStyle";
 import FontStyle from "../style/FontStyle";
-
-import { auth } from "../config/firebase";
 import ContainerStyles from "../style/ContainerStyles";
-import MemeViewModel from "../viewmodel/MemeViewModel";
+
 import { verificarError } from "../config/funciones";
+import { auth } from "../config/firebase";
+import { borrar , reaccionar , obtenerPorId } from "../modules/MemeModule";
 
 export default class Meme extends Component {
 
   state = {
     datosMeme: null,
-    funcionUsuario: null
+    funcionUsuario: null,
+    loading: false
   }
 
   componentDidMount(){
@@ -28,27 +29,28 @@ export default class Meme extends Component {
 
   borrarMeme = async () =>{
     //Eliminar el meme desde el viewmodel
-    const resultado = await MemeViewModel.borrar(this.state.datosMeme);
+    const resultado = await borrar(this.state.datosMeme);
     if(resultado !== "completado"){
       this.setState({errorMessage: verificarError(resultado)});
     }
   }
 
   reaccion = async() => {
+    this.setState({loading:true});
     //Reaccionar al meme desde el viewmodel
-    const resultado = await MemeViewModel.reaccionar(this.state.datosMeme);
+    const resultado = await reaccionar(this.state.datosMeme);
     if(resultado !== "completado"){
       this.setState({errorMessage: verificarError(resultado)});
     }
 
     //Recargar el meme
-    this.recargarMeme();
+    await this.recargarMeme();
+    this.setState({loading:false});
   }
 
   recargarMeme = async () =>{
-
-    //Consultar el meme nuevamente desde el viewmodel
-    const resultado = await MemeViewModel.obtenerPorId(this.state.datosMeme.id)
+    //Consultar el meme nuevamente desde el modulo
+    const resultado = await obtenerPorId(this.state.datosMeme.id)
     .catch(error => this.setState({errorMessage: verificarError(error)}));
     
     //Establecer el meme en el estado
@@ -102,7 +104,14 @@ export default class Meme extends Component {
             //Reaccionar a una publicacion
             <TouchableOpacity onPress={this.reaccion} style={ContainerStyles.contenedorHorizontal}>
               {/* Mostrar iconos de reacciones */}
-              {!datosMeme.likes.includes(auth.currentUser.uid)?(
+              
+              {this.state.loading === true?(
+                <ActivityIndicator
+                  color={color.negro}
+                  size={iconSize.medium}
+                  // size="small"
+                ></ActivityIndicator>
+              ):!datosMeme.likes.includes(auth.currentUser.uid)? (
                 <AntDesign name="smileo" size={iconSize.medium} color={color.negro} />
               ):(
                 <AntDesign name="smile-circle" size={iconSize.medium} color={color.negro} />

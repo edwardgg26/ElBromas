@@ -47,7 +47,11 @@ export default StyleSheet.create({
   width60Perc: {
     width: "60%",
     alignSelf: "center"
-  },width50Perc: {
+  },
+  width50Perc: {
     width: "50%"
+  },
+  borderBottomBlack: {
+    borderBottomWidth: StyleSheet.hairlineWidth
   }
 });

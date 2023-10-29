@@ -13,7 +13,9 @@ import BotonBase from "../components/BotonBase";
 
 import { auth } from "../config/firebase";
 import { verificarError } from "../config/funciones";
-import UserViewModel from "../viewmodel/UserViewModel";
+
+import { obtenerUsuario } from "../modules/UserModule";
+import { editarInformacion } from "../modules/UserMemeModule";
 
 export default class ActualizarDatos extends React.Component {
   state = {
@@ -22,29 +24,27 @@ export default class ActualizarDatos extends React.Component {
     password: "",
     confirmPassword: "",
     passwordActual: "",
-    errorMessage: null,
-    loading: false
+    errorMessage: null
   };
 
   async componentDidMount(){
     //Se consulta la informacion del usuario desde le viewmodel al cargar la pantalla 
     //y se almacena en el estado
-    await UserViewModel.obtener(auth.currentUser.uid)
+    await obtenerUsuario(auth.currentUser.uid)
     .then(result => this.setState({ displayName: result.username, comparaDisplayname: result.username}))
-    .catch(error => this.setState({errorMessage: verificarError(error.code)}));
+    .catch(error => this.setState({errorMessage: verificarError(error)}));
   }
 
   actualizarUsuario = async() => {
 
-    this.setState({loading: true});
     //Editar informacion
-    const respuesta = await UserViewModel.editarInformacion(this.state);
+    const respuesta = await editarInformacion(this.state);
     
     //Cambiar a pantalla de perfil o mostrar error en caso de haberlo
     if(respuesta === "completado"){
       this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid});
     }else{
-      this.setState({errorMessage: verificarError(respuesta), loading: false});
+      this.setState({errorMessage: verificarError(respuesta)});
     }
   };
 
@@ -120,17 +120,13 @@ export default class ActualizarDatos extends React.Component {
             ></TextInput>
           </View>
 
-          {/* Botones del formulario */}
+          {/* Seccion de botones */}
           <BotonBase tipo="azul" funcion={this.actualizarUsuario} texto="Actualizar" loadButton={true}/>
           <BotonBase tipo="gris" funcion={()=>this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})} texto="Cancelar" loadButton={false}/>
         </ScrollView>
 
-        <TabMenu
-          home={() => this.props.navigation.navigate("Home",{id: -2})}
-          subirMeme={() => this.props.navigation.navigate("Subir")}
-          categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
-        />
+        <TabMenu parentProps={this.props}/>
+        
       </View>
     );
   }

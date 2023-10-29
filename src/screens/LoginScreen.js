@@ -10,42 +10,38 @@ import ContainerStyles from "../style/ContainerStyles";
 import UtilidadesStyle from "../style/UtilidadesStyle";
 
 import { verificarError } from "../config/funciones";
-import { color } from "../style/VariablesStyle";
-import UserViewModel from "../viewmodel/UserViewModel";
+import { ingresar } from "../modules/UserModule";
 
 export default class LoginScreen extends React.Component {
 
   state = {
     email: "",
     password: "",
-    loading: false,
     errorMessage: null
   }
 
   handleLogin = async()=>{
-    this.setState({loading: true});
-    if(!this.state.email){
-      this.setState({errorMessage: "Debe rellenar el campo de correo"});
-    }else if (!this.state.password){
-      this.setState({errorMessage: "Debe rellenar el campo de contraseña"});
-    } else{
-      const respuesta = await UserViewModel.ingresar(this.state);
+    //Se llama la funcion "ingresar" del modulo de usuarios y se le pasa el estado
+    //El cual contiene el email y contraseña
+    const respuesta = await ingresar(this.state);
 
-      if(respuesta !== "completado"){
-        this.setState({errorMessage: verificarError(respuesta)});
-      }
+    //La funcion devuelve una respuesta, en caso de no ser "completado" se imprime el error
+    if(respuesta !== "completado"){
+      this.setState({errorMessage: verificarError(respuesta)});
     }
-    this.setState({loading: false});
   }
 
   render(){
     return (
       <View style={[ContainerStyles.contenedorCentrado, UtilidadesStyle.width80Perc , ContainerStyles.contenidoPantalla]}>
         <Text style={[FontStyle.titulo, UtilidadesStyle.marginVertical10]}>Iniciar Sesión</Text>
+
+        {/* Mensaje de error */}
         <View>
           {this.state.errorMessage && <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>}
         </View>
-  
+      
+        {/* Campos del formulario */}
         <View>
           <View style={UtilidadesStyle.marginVertical10}>
             <Text style={FontStyle.parrafo}>Correo:</Text>
@@ -53,7 +49,7 @@ export default class LoginScreen extends React.Component {
               keyboardType="email-address"
               placeholder="Ingresa tu email..."
               style={FormularioStyle.input} 
-              onChangeText={email => this.setState({email})} 
+              onChangeText={email => this.setState({email, errorMessage: null})} 
               value={this.state.email}
               autoCapitalize="none"></TextInput>
           </View>
@@ -64,12 +60,13 @@ export default class LoginScreen extends React.Component {
               placeholder="Ingresa tu contraseña..."
               style={FormularioStyle.input} 
               secureTextEntry 
-              onChangeText={password => this.setState({password})} 
+              onChangeText={password => this.setState({password, errorMessage: null})} 
               value={this.state.password}
               autoCapitalize="none"></TextInput>
           </View>
         </View>
-  
+        
+        {/* Seccion de botones */}
         <BotonBase tipo="azul" funcion={this.handleLogin} texto="Ingresar" loadButton={true}/>
         <BotonBase tipo="subra" funcion={()=>this.props.navigation.navigate("Register")} texto="Crear Cuenta" loadButton={false}/>
       </View>

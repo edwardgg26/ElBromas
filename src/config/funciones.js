@@ -13,17 +13,17 @@ function passwordValido(password){
 function verificarError(error){
 
     //Errores de validacion
-    if(error === "no-username"){
+    if(error.code === "no-username"){
         return "Debe ingresar un nombre de usuario"
-    } else if(error === "invalid-password"){
+    } else if(error.code === "invalid-password"){
         return "La contraseña debe contener por lo menos 8 caracteres, combinando mayusculas, minusculas y numeros";
-    } else if(error === "no-confirm-password"){
+    } else if(error.code === "no-confirm-password"){
         return "Las contraseñas no son iguales";
-    } else if(error === "no-image-selected"){
+    } else if(error.code === "no-image-selected"){
         return "Debes seleccionar una imagen";
-    } else if(error === "user-registered"){
+    } else if(error.code === "user-registered"){
         return "Ya hay un usuario con ese username";
-    } else if(error === "no-category-selected"){
+    } else if(error.code === "no-category-selected"){
         return "Debes seleccionar por lo menos una categoría";
     }
     

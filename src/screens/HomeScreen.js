@@ -13,9 +13,8 @@ import Header from "../components/Header";
 import Meme from "../components/Meme";
 import { verificarError } from "../config/funciones";
 
-import { auth } from "../config/firebase";
-import MemeViewModel from "../viewmodel/MemeViewModel";
-import CategorieViewModel from "../viewmodel/CategorieViewModel"
+import { obtenerMemes, obtenerPorCategoria } from "../modules/MemeModule";
+import { obtenerPorId } from "../modules/CategorieModule";
 
 export default class HomeScreen extends React.Component {
 
@@ -41,21 +40,26 @@ export default class HomeScreen extends React.Component {
   }
 
   cargarMemes = async() => {
-    const params = this.props.navigation.state.params;
+    //Se obtienen las props pasadas por el navegador
+    const params = this.props.route.params;
+
     if(!params || params.id === -2){
-      const memes = await MemeViewModel.obtener()
+      //En caso de no haber props o que el id pasado por props sea -2 se obtienen todos los memes 
+      const memes = await obtenerMemes()
       .catch(error => this.setState({errorMessage: verificarError(error)}));
       if(memes){
         this.setState({ memes, categoria: null });
       }
     }else{
-      const categoria = await CategorieViewModel.obtenerPorId(params.id)
+      //De lo contrario se obtiene la categoria 
+      const categoria = await obtenerPorId(params.id)
       .catch(error => this.setState({errorMessage: verificarError(error)}));
       if(categoria){
         this.setState({ categoria })
       }
-
-      const memes = await MemeViewModel.obtenerPorCategoria(params.id)
+      
+      //Posteriormente se obtienen los memes con la categoria pasada por props
+      const memes = await obtenerPorCategoria(params.id)
       .catch(error => this.setState({errorMessage: verificarError(error)}));
       if(memes){
         this.setState({ memes })
@@ -63,7 +67,6 @@ export default class HomeScreen extends React.Component {
 
     }
   }
-
 
   render() {
     const { memes , categoria } = this.state;
@@ -95,13 +98,7 @@ export default class HomeScreen extends React.Component {
           ))}
         </ScrollView>
 
-
-        <TabMenu
-          home={() => this.props.navigation.navigate("Home",{id: -2})}
-          subirMeme={() => this.props.navigation.navigate("Subir")}
-          categories={() => this.props.navigation.navigate("Categories")}
-          profile={() => this.props.navigation.navigate("Profile",{uid: auth.currentUser.uid})}
-        />
+        <TabMenu parentProps={this.props}/>
       </View>
     );
   }
