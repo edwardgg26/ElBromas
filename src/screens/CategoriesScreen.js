@@ -18,7 +18,7 @@ export default class CategorieScreen extends React.Component {
 
   async componentDidMount() {
     const categorias = await obtenerCategorias()
-    .catch(error => this.setState({errorMessage: verificarError(error.code)}));
+    .catch(error => this.setState({errorMessage: verificarError(error)}));
     if(this.state.errorMessage === null){
       this.setState({ categorias })
     }
@@ -27,7 +27,7 @@ export default class CategorieScreen extends React.Component {
   async componentDidUpdate(prevProps,prevState){
     if(this.state !== prevState){
       const categorias = await obtenerCategorias()
-      .catch(error => this.setState({errorMessage: verificarError(error.code)}));
+      .catch(error => this.setState({errorMessage: verificarError(error)}));
       if(this.state.errorMessage === null){
         this.setState({ categorias })
       }

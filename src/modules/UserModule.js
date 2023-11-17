@@ -1,7 +1,4 @@
 import { db, auth } from "../config/firebase";
-// import { db , storage , auth} from "../config/firebase";
-// import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
-// import MemeViewModel from "./MemeViewModel";
 import { passwordValido } from "../config/funciones";
 
 export const referenciaUsuarios = db.collection("users");

@@ -9,7 +9,6 @@ import EditarFotoPerfil from "../screens/EditarFotoPerfil";
 import ActualizarDatos from "../screens/ActualizarDatos";
 import NotificationScreen from "../screens/NotificationScreen";
 
-
 export default class AppStack extends React.Component {
   render() {
       const Stack = createStackNavigator();

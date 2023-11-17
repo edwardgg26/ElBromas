@@ -45,25 +45,33 @@ export default class HomeScreen extends React.Component {
 
     if(!params || params.id === -2){
       //En caso de no haber props o que el id pasado por props sea -2 se obtienen todos los memes 
-      const memes = await obtenerMemes()
-      .catch(error => this.setState({errorMessage: verificarError(error)}));
+      const memes = await obtenerMemes();
+    
       if(memes){
         this.setState({ memes, categoria: null });
       }
+      // else{
+      //   this.setState({ errorMessage: verificarError(memes) });
+      // }
     }else{
       //De lo contrario se obtiene la categoria 
-      const categoria = await obtenerPorId(params.id)
-      .catch(error => this.setState({errorMessage: verificarError(error)}));
+      const categoria = await obtenerPorId(params.id);
+      
       if(categoria){
         this.setState({ categoria })
       }
+      // else{
+      //   this.setState({ errorMessage: verificarError(categoria) });
+      // }
       
       //Posteriormente se obtienen los memes con la categoria pasada por props
-      const memes = await obtenerPorCategoria(params.id)
-      .catch(error => this.setState({errorMessage: verificarError(error)}));
+      const memes = await obtenerPorCategoria(params.id);
       if(memes){
-        this.setState({ memes })
+        this.setState({ memes });
       }
+      // else{
+      //   this.setState({ errorMessage: verificarError(memes) });
+      // }
 
     }
   }
@@ -93,9 +101,9 @@ export default class HomeScreen extends React.Component {
             {this.state.errorMessage && <Text style={FormularioStyle.error}>{this.state.errorMessage}</Text>}
           </View>
 
-          {memes.length !== 0 && memes.map((dato) => (
+          {memes.length !== 0 ? memes.map((dato) => (
             <Meme memePerfil = {false} key={dato.id} visitaUsuario={()=>this.props.navigation.navigate("Profile",{uid: dato.user.uid})} datos={dato} />
-          ))}
+          )):null}
         </ScrollView>
 
         <TabMenu parentProps={this.props}/>
