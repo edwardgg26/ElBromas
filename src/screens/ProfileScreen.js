@@ -51,10 +51,11 @@ export default class ProfileScreen extends React.Component {
   }
 
   //Funcion que se ejecuta cuando se actualiza el estado de los memes o las props
-  async componentDidUpdate(prevProps,prevState){
+  componentDidUpdate(prevProps,prevState){
     const {uid} = this.props.route.params;
 
-    if(this.state.memes !== prevState.memes || this.props !== prevProps){
+    if(this.props !== prevProps){
+      console.log("Actualizando perfil")
       this.cargarUsuario(uid);
     }
   }

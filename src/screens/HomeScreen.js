@@ -50,9 +50,6 @@ export default class HomeScreen extends React.Component {
       if(memes){
         this.setState({ memes, categoria: null });
       }
-      // else{
-      //   this.setState({ errorMessage: verificarError(memes) });
-      // }
     }else{
       //De lo contrario se obtiene la categoria 
       const categoria = await obtenerPorId(params.id);
@@ -60,19 +57,12 @@ export default class HomeScreen extends React.Component {
       if(categoria){
         this.setState({ categoria })
       }
-      // else{
-      //   this.setState({ errorMessage: verificarError(categoria) });
-      // }
       
       //Posteriormente se obtienen los memes con la categoria pasada por props
       const memes = await obtenerPorCategoria(params.id);
       if(memes){
         this.setState({ memes });
       }
-      // else{
-      //   this.setState({ errorMessage: verificarError(memes) });
-      // }
-
     }
   }
 

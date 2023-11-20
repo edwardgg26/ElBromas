@@ -25,7 +25,8 @@ export default class CategorieScreen extends React.Component {
   }
 
   async componentDidUpdate(prevProps,prevState){
-    if(this.state !== prevState){
+    if(this.state.categorias.length !== prevState.categorias.length){
+      console.log("Actualizando categorias")
       const categorias = await obtenerCategorias()
       .catch(error => this.setState({errorMessage: verificarError(error)}));
       if(this.state.errorMessage === null){

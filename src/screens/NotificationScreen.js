@@ -33,9 +33,10 @@ import {
     }
 
     async componentDidUpdate(prevProps,prevState){
-        if(this.state.notificaciones !== prevState.notificaciones){
-            this.cargarNotis();
-        }
+      if(this.state.notificaciones.length !== prevState.notificaciones.length){
+        console.log("Actualizando notis")
+        this.cargarNotis();
+      }
     }
 
     cargarNotis = async () => {

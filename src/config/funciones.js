@@ -35,7 +35,7 @@ function verificarError(error){
     } else if (error.code === "auth/invalid-login-credentials"){
         return "Email o contraseña incorrectos";
     } else if (error.code === "auth/missing-password"){
-        return "Debe ingresar la contraseña original";
+        return "Debe ingresar la contraseña";
     } else if(error.code === "auth/network-request-failed"){
         return "Error de Red";
     } else if(error.code === "auth/too-many-requests"){

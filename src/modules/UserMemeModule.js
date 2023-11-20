@@ -3,6 +3,7 @@ import { uploadBytes, ref, getDownloadURL } from 'firebase/storage';
 import { referenciaMemes , obtenerPorUsuario } from "./MemeModule";
 import { referenciaUsuarios , obtenerPorUsername , obtenerUsuario } from "./UserModule";
 import { referenciaNoti , obtenerNotisXUsuarioLike } from "./NotificationModule";
+import { passwordValido } from "../config/funciones";
 
 export async function subirMeme(idUsuario , uri, categorias){
     let errorCodigo = null;
